@@ -79,6 +79,9 @@ button[kind="primary"],button[kind="primaryFormSubmit"]{background:var(--ink)!im
 </style>
 """, unsafe_allow_html=True)
 
+from aesthetic_theme import apply_theme
+apply_theme()
+
 # ═════════════════════════════════════════════════════════════════════════
 # Session state
 # ═════════════════════════════════════════════════════════════════════════
@@ -466,3 +469,4 @@ Do not wait for this app or drive yourself if you feel unwell.</p>{crisis}
         ).properties(height=200, title="Urgency distribution"), width="stretch")
 
 st.markdown(f'<div class="mg-foot">{html.escape(C.DISCLAIMER)}</div>', unsafe_allow_html=True)
+
