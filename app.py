@@ -81,6 +81,8 @@ button[kind="primary"],button[kind="primaryFormSubmit"]{background:var(--ink)!im
 
 from aesthetic_theme import apply_theme
 apply_theme()
+from purple_palette import apply_palette
+apply_palette()
 
 # ═════════════════════════════════════════════════════════════════════════
 # Session state
