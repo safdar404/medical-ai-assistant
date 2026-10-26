@@ -20,8 +20,18 @@ APP_VERSION = "1.0.0"
 
 
 def get_openai_api_key() -> str:
-    """Return the key from the environment / .env, or an empty string."""
-    return os.getenv("OPENAI_API_KEY", "").strip()
+    """Return the key from the environment / .env, then Streamlit secrets, or an empty string.
+
+    On Streamlit Community Cloud, add OPENAI_API_KEY under *App settings → Secrets*.
+    """
+    key = os.getenv("OPENAI_API_KEY", "").strip()
+    if key:
+        return key
+    try:
+        import streamlit as st
+        return str(st.secrets.get("OPENAI_API_KEY", "")).strip()
+    except Exception:  # noqa: BLE001 — no secrets.toml is fine
+        return ""
 
 
 # ── Model settings ──────────────────────────────────────────────────────

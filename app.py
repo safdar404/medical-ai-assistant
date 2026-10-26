@@ -26,63 +26,15 @@ from src.report import build_pdf_report
 from src.safety import apply_floor, screen
 from src.utils import age_label, build_markdown_report, md_safe, md_safe_stream, parse_age
 
-st.set_page_config(page_title="MediGuide AI — Symptom Guidance (Educational)", page_icon="🩺", layout="wide")
+st.set_page_config(page_title="MediGuide AI — Symptom Guidance (Educational)", page_icon="🤖", layout="wide")
 
 # ═════════════════════════════════════════════════════════════════════════
-# Styling — Atkinson Hyperlegible was designed for maximum legibility,
-# which suits a patient-facing tool. Urgency colours are used ONLY for urgency.
+# Styling — one vibrant rainbow "AI agent" theme (see rainbow_theme.py).
+# Urgency colours are used ONLY for urgency.
 # ═════════════════════════════════════════════════════════════════════════
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Noto+Nastaliq+Urdu:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&display=swap');
-:root{--ink:#0F2A3D;--muted:#566573;--line:#D9E1E8;--paper:#F5F7F9;--accent:#1C6E8C;
-      --low:#2E7D4F;--medium:#B7791F;--high:#C2410C;--emergency:#B91C1C}
-html,body,.stApp,[class*="css"],button,input,textarea,select{font-family:"Atkinson Hyperlegible",system-ui,sans-serif}
-.stApp{background:var(--paper);color:var(--ink)}
-.block-container{max-width:1120px;padding-top:3.4rem}
-h1,h2,h3,h4{color:var(--ink);letter-spacing:-.005em}
-[data-testid="stSidebar"]{background:#fff;border-right:1px solid var(--line)}
-[data-testid="stForm"]{background:#fff;border:1px solid var(--line);border-radius:12px;padding:1.2rem 1.4rem}
-[data-testid="stMetric"]{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 16px}
-[data-testid="stMetricValue"]{font-size:1.3rem!important;line-height:1.25}
-[data-testid="stMetricValue"] > div{white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
-[data-testid="stExpander"]{background:#fff;border-color:var(--line);border-radius:10px}
-button[kind="primary"],button[kind="primaryFormSubmit"]{background:var(--ink)!important;border:0!important;color:#fff!important}
-:focus-visible{outline:3px solid var(--accent)!important;outline-offset:2px}
-
-.mg-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:1.5rem;align-items:end;margin-bottom:1rem}
-.mg-head h1{font-size:clamp(2.2rem,4.5vw,3.2rem);font-weight:700;line-height:1;margin:0;padding:0}
-.mg-head p{margin:.55rem 0 0;color:var(--muted);font-size:1.05rem}
-.mg-notice{border:2px solid var(--emergency);border-radius:10px;background:#fff;padding:.7rem .9rem;font-size:.9rem;line-height:1.45}
-.mg-notice b{color:var(--emergency)}
-@media(max-width:760px){.mg-head{grid-template-columns:1fr}}
-
-/* Triage tag: four levels, the current one filled */
-.mg-triage{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:.4rem 0 .9rem}
-.mg-triage div{border:2px solid var(--line);border-radius:8px;padding:.55rem .7rem;background:#fff;color:var(--muted)}
-.mg-triage div b{display:block;font-size:1rem;letter-spacing:.02em}
-.mg-triage div span{font-size:.78rem;line-height:1.3;display:block}
-.mg-triage div.on{color:#fff;border-color:transparent}
-.mg-triage div.on b{font-size:1.15rem}
-@media(max-width:760px){.mg-triage{grid-template-columns:repeat(2,1fr)}}
-
-.mg-emergency{background:var(--emergency);color:#fff;border-radius:12px;padding:1.1rem 1.3rem;margin:.6rem 0 1rem}
-.mg-emergency h3{color:#fff;margin:0 0 .35rem;font-size:1.45rem;padding:0}
-.mg-emergency p{margin:.2rem 0;font-size:1rem;line-height:1.5}
-.mg-foot{margin-top:2.4rem;padding-top:1rem;border-top:1px solid var(--line);font-size:.82rem;color:var(--muted)}
-
-/* Right-to-left answers (Urdu, Arabic) */
-[class*="st-key-rtl_"],[class*="st-key-rtl_"] [data-testid="stMarkdownContainer"],[class*="st-key-rtl_"] p,
-[class*="st-key-rtl_"] li,[class*="st-key-rtl_"] ol,[class*="st-key-rtl_"] ul{direction:rtl!important;text-align:right!important}
-[class*="st-key-rtl_"] p,[class*="st-key-rtl_"] li{font-family:"Noto Nastaliq Urdu","Noto Naskh Arabic","Atkinson Hyperlegible",sans-serif;line-height:2.1}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-</style>
-""", unsafe_allow_html=True)
-
-from aesthetic_theme import apply_theme
+from rainbow_theme import apply_theme, logo_data_uri
 apply_theme()
-from purple_palette import apply_palette
-apply_palette()
+LOGO_URI = logo_data_uri()
 
 # ═════════════════════════════════════════════════════════════════════════
 # Session state
@@ -90,7 +42,7 @@ apply_palette()
 ss = st.session_state
 FORM_DEFAULTS = {"f_age": "", "f_gender": C.GENDERS[0], "f_symptoms": [], "f_free_text": "",
                  "f_duration": C.DURATIONS[1], "f_severity": 3, "f_conditions": "", "f_medications": "",
-                 "f_notes": "", "language": "English"}
+                 "f_notes": "", "f_temp": 0.0, "f_pulse": 0, "language": "English"}
 RESULT_DEFAULTS = {"patient": None, "inputs": None, "safety": None, "result": None, "final_urgency": None,
                    "raised": False, "narrative": None, "stream_pending": False, "ai_error": None,
                    "last_call": None, "chat": [], "history": []}
@@ -102,11 +54,74 @@ def load_scenario() -> None:
     s = C.TEST_SCENARIOS[ss.scenario_pick]
     ss.update(f_age=s["age"], f_gender=s["gender"], f_symptoms=list(s["symptoms"]),
               f_free_text=s.get("free_text", ""), f_duration=s["duration"], f_severity=s["severity"],
-              f_conditions="", f_medications="", f_notes="", language=s["language"])
+              f_conditions="", f_medications="", f_notes="", f_temp=0.0, f_pulse=0, language=s["language"])
+
+
+def clear_results() -> None:
+    """Drop the previous assessment so stale guidance (e.g. an old emergency banner) never lingers."""
+    ss.update({k: v for k, v in RESULT_DEFAULTS.items() if k != "history"})
+    ss.chat = []
 
 
 def clear_form() -> None:
     ss.update({k: (list(v) if isinstance(v, list) else v) for k, v in FORM_DEFAULTS.items() if k != "language"})
+    clear_results()
+
+
+SYMPTOM_EMOJI = {
+    "Fever": "🌡️", "Cough": "😷", "Sore throat": "🗣️", "Runny or blocked nose": "🤧", "Sneezing": "🤧",
+    "Headache": "🤕", "Fatigue": "😴", "Body aches": "💪", "Chills": "🥶", "Nausea": "🤢", "Vomiting": "🤮",
+    "Diarrhoea": "🚽", "Stomach pain": "😣", "Loss of appetite": "🍽️", "Dizziness": "😵‍💫", "Rash": "🩹",
+    "Itching": "🖐️", "Joint pain": "🦴", "Back pain": "🧍", "Ear pain": "👂", "Eye redness": "👁️",
+    "Painful urination": "💧", "Trouble sleeping": "🌙", "Anxiety or low mood": "💭", "Swelling": "🦶",
+    "Chest pain": "💔", "Shortness of breath": "🫁", "Fainting": "😵", "Confusion": "❓", "Seizure": "⚡",
+    "Severe bleeding": "🩸", "Coughing or vomiting blood": "🩸", "Weakness or numbness on one side": "🧠",
+    "Slurred speech": "🗯️", "Face or throat swelling": "😮", "Thoughts of self-harm": "🆘",
+}
+URGENCY_EMOJI = {"LOW": "🟢", "MEDIUM": "🟡", "HIGH": "🟠", "EMERGENCY": "🔴"}
+# Where to look for care, by urgency (opens a map search; no location data is sent by the app).
+CARE_SEARCH = {
+    "LOW": ("💊 Find a pharmacy near me", "pharmacy near me"),
+    "MEDIUM": ("🏥 Find a clinic near me", "clinic near me"),
+    "HIGH": ("🚑 Find urgent care near me", "urgent care near me"),
+    "EMERGENCY": ("🚨 Find the nearest emergency department", "emergency room near me"),
+}
+# General, non-personalised guidance shown when the AI is unavailable (no key / API error).
+OFFLINE_TIPS = {
+    "LOW": ["Rest, drink plenty of fluids and eat light meals.",
+            "Track your symptoms and temperature once or twice a day.",
+            "A pharmacist can advise on suitable over-the-counter options.",
+            "See a doctor if symptoms last more than a week or get worse."],
+    "MEDIUM": ["Book an appointment with a doctor within the next few days.",
+               "Keep a simple diary: symptoms, temperature, what helps or worsens them.",
+               "Bring a list of your medicines and conditions to the appointment.",
+               "Seek care sooner if new or warning symptoms appear."],
+    "HIGH": ["Get medical advice today — a doctor, urgent-care clinic or nurse helpline.",
+             "Don't drive yourself if you feel faint, confused or very unwell.",
+             "Have someone stay with you if possible.",
+             "Call your emergency number if symptoms suddenly worsen."],
+    "EMERGENCY": ["Call your local emergency number now, or go to the nearest emergency department.",
+                  "Do not wait for this app, and do not drive yourself.",
+                  "Unlock your door and keep your phone with you.",
+                  "If you can, tell someone nearby what is happening."],
+}
+
+
+def symptom_label(name: str) -> str:
+    return f"{SYMPTOM_EMOJI.get(name, '•')} {name}"
+
+
+def vitals_flags(temp: float, pulse: int) -> list[str]:
+    """Readable vital-sign notes passed to the AI (informational, never lower urgency)."""
+    notes = []
+    if temp:
+        notes.append(f"Measured temperature {temp:.1f} °C" + (" (high fever)" if temp >= 39.5 else
+                                                            " (fever)" if temp >= 38 else
+                                                            " (low)" if temp < 35.5 else ""))
+    if pulse:
+        notes.append(f"Resting heart rate {pulse} bpm" + (" (fast)" if pulse > 110 else
+                                                        " (slow)" if pulse < 50 else ""))
+    return notes
 
 
 def reset_session() -> None:
@@ -131,28 +146,27 @@ def friendly_error(exc: Exception) -> str:
 # ═════════════════════════════════════════════════════════════════════════
 env_key = C.get_openai_api_key()
 with st.sidebar:
-    st.markdown("## 🩺 MediGuide AI")
     st.caption("Educational symptom guidance · v" + C.APP_VERSION)
     st.write("Describe your symptoms and get structured, safety-first guidance on what kind of care to seek, "
              "generated with LangChain and an OpenAI model.")
     st.error(f"**Not a doctor.** {C.DISCLAIMER}\n\n**Emergency numbers:** {C.EMERGENCY_NUMBERS}", icon="🚑")
 
-    st.markdown("#### Answer language")
+    st.markdown("#### 🌐 Answer language")
     st.selectbox("Language for the guidance", list(C.LANGUAGES), key="language")
 
-    st.markdown("#### Model configuration")
+    st.markdown("#### 🧠 AI model")
     model = st.selectbox("Chat model", C.AVAILABLE_MODELS, index=C.AVAILABLE_MODELS.index(C.DEFAULT_MODEL))
     temperature = st.slider("Temperature", 0.0, 1.0, C.DEFAULT_TEMPERATURE, 0.1,
                             help="Lower values give more consistent, cautious answers.")
     if env_key:
-        st.caption("✓ API key loaded from `.env`")
+        st.caption("✅ API key loaded from `.env` / secrets")
     else:
         ss.api_key_override = st.text_input("OpenAI API key", type="password",
                                             value=ss.get("api_key_override", ""),
-                                            help="Kept in this browser session only. A .env file is preferred.")
+                                            help="Held in server memory for this session. Configure a key with Streamlit Secrets or .env.")
     api_key = env_key or (ss.get("api_key_override") or "").strip()
 
-    st.markdown("#### Response cache")
+    st.markdown("#### ⚡ Response cache")
     cache_mode = st.radio("Cache type", C.CACHE_OPTIONS, label_visibility="collapsed",
                           captions=["RAM · fastest · cleared on restart", "File on disk · survives restarts",
                                     "Every request calls the API"])
@@ -161,12 +175,12 @@ with st.sidebar:
         entries = cache_entry_count(cache_mode)
         size = f" · {cache_file_size_kb()} KB" if cache_mode == C.CACHE_SQLITE else ""
         st.caption(f"Active: `{active_cache_name()}` · {entries} stored response(s){size}")
-        if st.button("Clear this cache", width="stretch", disabled=entries == 0):
+        if st.button("🗑️ Clear this cache", width="stretch", disabled=entries == 0):
             clear_cache(cache_mode)
             st.rerun()
 
-    st.markdown("#### Session")
-    st.button("Reset session", on_click=reset_session, width="stretch",
+    st.markdown("#### 🔄 Session")
+    st.button("🧹 Reset session", on_click=reset_session, width="stretch",
               help="Clears the form, results, chat and history.")
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -174,26 +188,35 @@ with st.sidebar:
 # ═════════════════════════════════════════════════════════════════════════
 st.markdown(f"""
 <div class="mg-head">
-  <div><h1>MediGuide AI</h1><p>{html.escape(C.APP_TAGLINE)}</p></div>
-  <div class="mg-notice"><b>This is not medical advice or a diagnosis.</b> MediGuide AI is an educational
+  <img class="mg-logo" src="{LOGO_URI}" alt="">
+  <div><h1>MediGuide AI</h1><p>{html.escape(C.APP_TAGLINE)}</p>
+    <div class="mg-chips"><span>🛡️ Safety rules first</span><span>🧠 LangChain + OpenAI</span>
+    <span>🌍 10 languages</span><span>🎙️ Voice input</span><span>📄 PDF report</span></div></div>
+  <div class="mg-notice">⚠️ <b>This is not medical advice or a diagnosis.</b> MediGuide AI is an educational
   prototype. Always consult a qualified healthcare professional. <b>In an emergency, call your local
   emergency number now.</b></div>
 </div>""", unsafe_allow_html=True)
 
+AGENT_STATUS = (f"<b>AI agent online</b> · {html.escape(model)}" if api_key else
+                "<b>AI agent offline</b> · add an OpenAI API key for full AI guidance — "
+                "🛡️ safety rules and basic guidance still work")
+st.markdown(f'<div class="mg-agent"><img src="{LOGO_URI}" alt=""><span class="mg-dot{"" if api_key else " off"}">'
+            f'</span><span>{AGENT_STATUS}</span></div>', unsafe_allow_html=True)
+
 # ═════════════════════════════════════════════════════════════════════════
 # Quick fill: test scenarios + voice input (bonus)
 # ═════════════════════════════════════════════════════════════════════════
-with st.expander("Quick fill — load a test scenario or describe symptoms by voice"):
-    t_scen, t_voice = st.tabs(["Test scenarios", "Voice input"])
+with st.expander("⚡ Quick fill — load a test scenario or describe symptoms by voice"):
+    t_scen, t_voice = st.tabs(["🧪 Test scenarios", "🎙️ Voice input"])
     with t_scen:
-        c1, c2, c3 = st.columns([3, 1, 1], vertical_alignment="bottom")
+        c1, c2, c3 = st.columns([2.4, 1, 1], vertical_alignment="bottom")
         c1.selectbox("Assignment test scenario", list(C.TEST_SCENARIOS), key="scenario_pick")
-        c2.button("Load scenario", on_click=load_scenario, width="stretch")
-        c3.button("Clear form", on_click=clear_form, width="stretch")
+        c2.button("📥 Load", on_click=load_scenario, width="stretch", help="Load the selected scenario")
+        c3.button("🧹 Clear", on_click=clear_form, width="stretch", help="Clear the form and results")
         st.caption("Scenario 4 (cache): submit the same form twice. Scenario 5: submit with no symptoms.")
     with t_voice:
         audio = st.audio_input("Record a short description of your symptoms")
-        if st.button("Transcribe into “Other symptoms”", disabled=audio is None or not api_key):
+        if st.button("📝 Transcribe into “Other symptoms”", disabled=audio is None or not api_key):
             try:
                 with st.spinner("Transcribing…"):
                     text = transcribe_audio(api_key, audio.getvalue(), C.LANGUAGES[ss.language][0])
@@ -208,25 +231,31 @@ with st.expander("Quick fill — load a test scenario or describe symptoms by vo
 # Main form
 # ═════════════════════════════════════════════════════════════════════════
 with st.form("symptom_form"):
-    st.markdown("### About you")
+    st.markdown("### 👤 About you")
     c1, c2 = st.columns(2)
     c1.text_input("Age", key="f_age", placeholder="e.g. 34, or 8 months for a baby")
     c2.selectbox("Gender", C.GENDERS, key="f_gender")
 
-    st.markdown("### Your symptoms")
-    st.multiselect("Symptoms", C.SYMPTOMS, key="f_symptoms", placeholder="Choose one or more symptoms")
+    st.markdown("### 🤒 Your symptoms")
+    st.multiselect("Symptoms", C.SYMPTOMS, key="f_symptoms", placeholder="Choose one or more symptoms",
+                   format_func=symptom_label)
     st.text_input("Other symptoms (optional)", key="f_free_text",
                   placeholder="Describe anything not in the list, in your own words")
     c1, c2 = st.columns(2)
     c1.selectbox("How long have you had them?", C.DURATIONS, key="f_duration")
     c2.slider("How severe? (1 = barely noticeable, 10 = worst imaginable)", 1, 10, key="f_severity")
 
-    st.markdown("### Medical background (optional)")
+    st.markdown("### 🩺 Vitals (optional)")
+    c1, c2 = st.columns(2)
+    c1.number_input("🌡️ Temperature (°C) — leave 0 if not measured", 0.0, 43.0, step=0.1, format="%.1f", key="f_temp")
+    c2.number_input("💓 Resting heart rate (bpm) — leave 0 if not measured", 0, 220, step=1, key="f_pulse")
+
+    st.markdown("### 📋 Medical background (optional)")
     c1, c2, c3 = st.columns(3)
     c1.text_area("Existing medical conditions", key="f_conditions", placeholder="e.g. asthma, diabetes")
     c2.text_area("Current medications", key="f_medications", placeholder="e.g. inhaler, metformin")
     c3.text_area("Additional notes", key="f_notes", placeholder="e.g. recent travel, pregnancy, allergies")
-    submitted = st.form_submit_button("Get guidance", type="primary")
+    submitted = st.form_submit_button("✨ Get AI guidance", type="primary", width="stretch")
 
 if submitted:
     age_years, age_error = parse_age(ss.f_age)
@@ -236,31 +265,41 @@ if submitted:
                         "No request was sent to the AI.")
     for problem in problems:
         st.warning(problem, icon="✋")
-    if not problems:
+    if problems:
+        clear_results()          # never leave a previous result (e.g. an emergency banner) on screen
+    else:
         # 1) Python safety pre-screen — independent of the AI.
+        vitals = vitals_flags(ss.f_temp, ss.f_pulse)
+        notes_plus = "; ".join([n for n in [ss.f_notes.strip(), *vitals] if n])
         safety = screen(ss.f_symptoms, ss.f_free_text, ss.f_notes, age_years, ss.f_severity, ss.f_duration)
         # 2) Prompt variables.
         inputs = build_prompt_inputs(
             age=age_label(ss.f_age, age_years), gender=ss.f_gender, symptoms=ss.f_symptoms,
             free_text=ss.f_free_text, duration=ss.f_duration, severity=ss.f_severity,
-            existing_conditions=ss.f_conditions, medications=ss.f_medications, notes=ss.f_notes,
+            existing_conditions=ss.f_conditions, medications=ss.f_medications, notes=notes_plus,
             language=ss.language, safety=safety)
         patient = {"Age": inputs["age"], "Gender": inputs["gender"], "Symptoms": inputs["symptoms"],
                    "Duration": inputs["duration"], "Severity": f"{ss.f_severity}/10",
                    "Existing conditions": inputs["existing_conditions"], "Medications": inputs["medications"],
-                   "Notes": inputs["notes"], "Answer language": ss.language}
+                   "Notes": inputs["notes"], "Vitals": "; ".join(vitals) or "Not measured",
+                   "Answer language": ss.language}
         ss.update(patient=patient, inputs=inputs, safety=safety, result=None, narrative=None,
                   stream_pending=False, ai_error=None, last_call=None, chat=[])
         ai_level = None
         if not api_key:
-            ss.ai_error = "Add your OpenAI API key (in .env or the sidebar) to get AI guidance."
+            ss.ai_error = ("The AI agent is offline — add an OpenAI API key (in `.env`, Streamlit secrets or the "
+                           "sidebar) for full AI guidance. Safety rules and basic guidance are shown below.")
         else:
             before = cache_entry_count(cache_mode)
             started = time.perf_counter()
             try:
                 # 3) ChatOpenAI + LLMChain -> 4) safe JSON parsing
-                with st.spinner("Assessing your symptoms…"):
+                with st.status("🤖 AI agent is working…", expanded=False) as status:
+                    st.write("🛡️ Safety rules checked" + (f" — minimum urgency **{safety.floor}**" if safety.floor else ""))
+                    st.write(f"🧠 Analysing your symptoms with {model}…")
                     result = run_assessment(get_llm(api_key, model, temperature), inputs)
+                    st.write("🧩 Structured answer parsed")
+                    status.update(label="✅ Assessment ready", state="complete")
                 ss.result = result.__dict__
                 ai_level = (result.assessment or {}).get("urgency_level")
                 ss.stream_pending = True
@@ -289,7 +328,7 @@ def show_list(items: list[str], numbered: bool = True) -> None:
 # Results dashboard
 # ═════════════════════════════════════════════════════════════════════════
 if ss.patient is None:
-    st.info("Fill in the form above and select **Get guidance**. Required: your age and at least one symptom.",
+    st.info("Fill in the form above and select **✨ Get AI guidance**. Required: your age and at least one symptom.",
             icon="📝")
 else:
     safety, final = ss.safety, ss.final_urgency
@@ -301,20 +340,20 @@ else:
         crisis = ('<p>If you are thinking about harming yourself, please reach out now: call your local '
                   'emergency number or a crisis line, or tell someone you trust. You do not have to face this '
                   'alone.</p>') if safety.crisis else ""
-        st.markdown(f"""<div class="mg-emergency" role="alert"><h3>Seek emergency help now</h3>
+        st.markdown(f"""<div class="mg-emergency" role="alert"><h3>🚨 Seek emergency help now</h3>
 <p>Call your local emergency number or go to the nearest emergency department immediately.
 Do not wait for this app or drive yourself if you feel unwell.</p>{crisis}
-<p><b>Emergency numbers:</b> {html.escape(C.EMERGENCY_NUMBERS)}</p></div>""", unsafe_allow_html=True)
+<p>📞 <b>Emergency numbers:</b> {html.escape(C.EMERGENCY_NUMBERS)}</p></div>""", unsafe_allow_html=True)
 
     st.warning("**Educational guidance only — not a diagnosis.** The information below may be incomplete or "
                "wrong. Please consult a qualified healthcare professional.", icon="⚠️")
 
-    st.markdown("## Your guidance")
+    st.markdown("## 📊 Your guidance")
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Urgency level", C.URGENCY_INFO[final]["label"] if final else "Not determined")
-    c2.metric("Severity", ss.patient["Severity"])
-    c3.metric("Duration", ss.patient["Duration"])
-    c4.metric("Symptoms reported", len([s for s in ss.patient["Symptoms"].split(", ") if s]))
+    c1.metric("🚦 Urgency", f"{URGENCY_EMOJI[final]} {C.URGENCY_INFO[final]['label']}" if final else "Not determined")
+    c2.metric("📈 Severity", ss.patient["Severity"])
+    c3.metric("⏱️ Duration", ss.patient["Duration"])
+    c4.metric("🤒 Symptoms", len([s for s in ss.patient["Symptoms"].split(", ") if s]))
 
     if final:
         cells = []
@@ -323,7 +362,7 @@ Do not wait for this app or drive yourself if you feel unwell.</p>{crisis}
             on = level == final
             style = f' style="background:{info["colour"]}"' if on else ""
             cells.append(f'<div class="{"on" if on else ""}"{style} aria-current="{str(on).lower()}">'
-                         f'<b>{info["label"]}</b><span>{html.escape(info["meaning"])}</span></div>')
+                         f'<b>{URGENCY_EMOJI[level]} {info["label"]}</b><span>{html.escape(info["meaning"])}</span></div>')
         st.markdown(f'<div class="mg-triage" role="list" aria-label="Urgency level: {final}">{"".join(cells)}</div>',
                     unsafe_allow_html=True)
         alert = {"LOW": st.success, "MEDIUM": st.warning, "HIGH": st.error, "EMERGENCY": st.error}[final]
@@ -331,14 +370,31 @@ Do not wait for this app or drive yourself if you feel unwell.</p>{crisis}
         if ss.raised and a:
             st.info(f"The AI suggested **{a['urgency_level']}**, but MediGuide's safety rules raised it to "
                     f"**{final}**. When in doubt, the more cautious level is shown.", icon="🛡️")
+        label, query = CARE_SEARCH[final]
+        st.link_button(label, "https://www.google.com/maps/search/" + query.replace(" ", "+"),
+                       type="primary" if final in ("HIGH", "EMERGENCY") else "secondary")
         if safety.reasons:
-            with st.expander("Why this urgency level? (rule-based safety checks)"):
+            with st.expander("🛡️ Why this urgency level? (rule-based safety checks)"):
                 for reason in safety.reasons:
                     st.markdown(f"- {reason}")
                 st.caption("These checks run in Python before the AI and can only raise urgency, never lower it.")
 
+    if ss.patient.get("Vitals", "Not measured") != "Not measured":
+        chips = "".join(f'<span class="{"warn" if "(" in v else ""}">{"🌡️" if "temperature" in v else "💓"} '
+                        f'{html.escape(v)}</span>' for v in ss.patient["Vitals"].split("; "))
+        st.markdown(f'<div class="mg-vitals">{chips}</div>', unsafe_allow_html=True)
+
     if ss.ai_error:
         st.error(ss.ai_error, icon="🔌")
+    if not a:
+        level = final or "MEDIUM"
+        with st.container(border=True):
+            st.markdown(f"#### 🧭 Basic guidance (no AI) · {URGENCY_EMOJI[level]} {C.URGENCY_INFO[level]['label']}")
+            if not final:
+                st.caption("No safety rule fired and the AI is unavailable, so general advice for a "
+                           "**Medium** level is shown to stay on the cautious side.")
+            for tip in OFFLINE_TIPS[level]:
+                st.markdown(f"- {tip}")
     if ss.last_call:
         note = "served from cache — no new API call" if ss.last_call["hit"] else "fresh API call"
         st.caption(f"Assessment: {ss.last_call['seconds']} s · {note} · {ss.last_call['cache']}")
@@ -354,7 +410,7 @@ Do not wait for this app or drive yourself if you feel unwell.</p>{crisis}
 
     # Streamed narrative — "AI-generated general information"
     if result:
-        st.markdown("### What this may mean and what to do")
+        st.markdown("### 💬 What this may mean and what to do")
         with text_block("narrative"):
             if ss.stream_pending:
                 try:
@@ -369,24 +425,24 @@ Do not wait for this app or drive yourself if you feel unwell.</p>{crisis}
                 st.markdown(md_safe(ss.narrative))
 
     if a:
-        tabs = st.tabs(["Summary", "Possible conditions", "Next steps", "Questions for your doctor",
-                        "Warning signs", "Ask a follow-up", "Under the hood"])
+        tabs = st.tabs(["📝 Summary", "🔍 Possible conditions", "✅ Next steps", "❓ Doctor questions",
+                        "🚨 Warning signs", "💬 Ask the AI", "⚙️ Under the hood"])
         with tabs[0]:
             c1, c2 = st.columns([2, 3])
             with c1:
-                st.markdown("**What you told us**")
+                st.markdown("**👤 What you told us**")
                 st.markdown("  \n".join(f"**{key}:** {md_safe(ss.patient[key])}" for key in
-                                        ["Age", "Gender", "Symptoms", "Duration", "Severity",
+                                        ["Age", "Gender", "Symptoms", "Duration", "Severity", "Vitals",
                                          "Existing conditions", "Medications", "Notes"]))
             with c2:
-                st.markdown("**AI summary**")
+                st.markdown("**🤖 AI summary**")
                 with text_block("summary"):
                     st.info(md_safe(a["summary"]))
         with tabs[1], text_block("conditions"):
             st.warning("These are possibilities for education only — **not a diagnosis**. Only a healthcare "
                        "professional who examines you can diagnose a condition.")
             for i, cond in enumerate(a["possible_conditions"]):
-                with st.expander(cond["name"] or "Possible condition", expanded=i == 0):
+                with st.expander("🔹 " + (cond["name"] or "Possible condition"), expanded=i == 0):
                     st.markdown(md_safe(cond["reason"]) or "_No explanation given._")
         with tabs[2], text_block("steps"):
             for step in a["recommended_next_steps"]:
@@ -402,12 +458,12 @@ Do not wait for this app or drive yourself if you feel unwell.</p>{crisis}
             st.caption("Ask about this guidance. The conversation is sent as System → Human → AI messages.")
             for turn in ss.chat:
                 st.chat_message("user").markdown(md_safe(turn["question"]))
-                with st.chat_message("assistant"), text_block(f"chat_{len(turn['question'])}_{turn['n']}"):
+                with st.chat_message("assistant", avatar=LOGO_URI), text_block(f"chat_{len(turn['question'])}_{turn['n']}"):
                     st.markdown(md_safe(turn["answer"]))
             question = st.chat_input("e.g. What can I do at home to feel better?", disabled=not api_key)
             if question:
                 st.chat_message("user").markdown(md_safe(question))
-                with st.chat_message("assistant"):
+                with st.chat_message("assistant", avatar=LOGO_URI):
                     try:
                         messages = build_conversation(ss.inputs, a, ss.chat, question)
                         shown = st.write_stream(md_safe_stream(
@@ -440,23 +496,23 @@ Do not wait for this app or drive yourself if you feel unwell.</p>{crisis}
                            "model call; an identical request returns instantly without calling the API.")
 
     # ── Downloads ──
-    st.markdown("### Save this guidance")
+    st.markdown("### 💾 Save this guidance")
     reasons = safety.reasons if safety else []
     lang = (ss.inputs or {}).get("language", "English")
     c1, c2 = st.columns(2)
-    c1.download_button("Download report (Markdown)",
+    c1.download_button("⬇️ Report (Markdown)",
                        build_markdown_report(ss.patient, a, final, reasons, ss.narrative),
                        f"mediguide-{datetime.now():%Y%m%d-%H%M}.md", "text/markdown", width="stretch")
     if C.LANGUAGES[lang][2]:
-        c2.download_button("Download report (PDF)", build_pdf_report(ss.patient, a, final, reasons, ss.narrative),
+        c2.download_button("📄 Report (PDF)", build_pdf_report(ss.patient, a, final, reasons, ss.narrative),
                            f"mediguide-{datetime.now():%Y%m%d-%H%M}.pdf", "application/pdf", width="stretch")
     else:
-        c2.button("Download report (PDF)", disabled=True, width="stretch",
+        c2.button("📄 Report (PDF)", disabled=True, width="stretch",
                   help=f"PDF export supports Latin-script languages. Use the Markdown report for {lang}.")
 
     # ── Session history + urgency analytics (bonus) ──
     if len(ss.history) > 1:
-        st.markdown("### Session history")
+        st.markdown("### 🕘 Session history")
         hist = pd.DataFrame(ss.history)
         left, right = st.columns([3, 2])
         left.dataframe(hist, hide_index=True, width="stretch")
